@@ -14,11 +14,10 @@ import (
 type Server struct {
 	Address    string
 	Port       int16
-	HTTPServer *fiber.App
+	HTTPServer fiber.App
 	Listener   quic.Listener
-
-	certFile string
-	keyFile  string
+	certFile   string
+	keyFile    string
 }
 
 func (s *Server) New() fiber.App {
