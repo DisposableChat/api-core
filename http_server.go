@@ -14,7 +14,6 @@ import (
 type Server struct {
 	Address    string
 	Port       int16
-	EnableCors bool
 	HTTPServer *fiber.App
 	Listener   quic.Listener
 
