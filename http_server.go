@@ -40,3 +40,10 @@ func (s *Server) Listen() error {
 
 	return nil
 }
+
+func (s *Server) SetCertificates(certFile string, keyFile string) (string, string) {
+	s.certFile = certFile
+	s.keyFile = keyFile
+
+	return certFile, keyFile
+}
