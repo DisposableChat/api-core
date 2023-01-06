@@ -22,7 +22,7 @@ type Server struct {
 	keyFile  string
 }
 
-func New() fiber.App {
+func (s *Server) New() fiber.App {
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 	})
