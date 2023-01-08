@@ -3,47 +3,87 @@ package core
 import (
 	"fmt"
 
-	"net/http"
-
 	"github.com/gofiber/fiber/v2"
-
-	"github.com/lucas-clemente/quic-go"
-	"github.com/lucas-clemente/quic-go/http3"
 )
 
 type Server struct {
-	Address    string
-	Port       int16
-	HTTPServer fiber.App
-	Listener   quic.Listener
-	certFile   string
-	keyFile    string
+	Address  string
+	Port     int16
+	App      *fiber.App
+	certFile string
+	keyFile  string
 }
 
-func (s *Server) New() fiber.App {
+func (s *Server) New() *fiber.App {
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 	})
 
-	return *app
+	return app
 }
 
 func (s *Server) Listen() error {
-	httpHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.HTTPServer.Handler()
-	})
-
-	err := http3.ListenAndServe(fmt.Sprintf("%s:%d", s.Address, s.Port), s.certFile, s.keyFile, httpHandler)
+	err := s.App.Listen(fmt.Sprintf("%s:%d", s.Address, s.Port))
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	return nil
 }
 
-func (s *Server) SetCertificates(certFile string, keyFile string) (string, string) {
-	s.certFile = certFile
-	s.keyFile = keyFile
+func OK(c *fiber.Ctx, message string, data interface{}) error {
+	return c.JSON(HTTPServerMessage{
+		Message: message,
+		Data:    data,
+		Exit:    0,
+	})
+}
 
-	return certFile, keyFile
+func Error(c *fiber.Ctx, message string, data interface{}) error {
+	return c.JSON(HTTPServerMessage{
+		Message: message,
+		Data:    data,
+		Exit:    1,
+	})
+}
+
+func AuthorizationMiddlware(c *fiber.Ctx, required bool) (error) {
+	session, err := GetSessionFromRequest(c)
+	if err != nil && required {
+		return Error(c, err.Error(), nil)
+	}
+
+	if err == nil && len(session.ID) > 1 {
+		fmt.Println(session) //delete
+		c.Locals("authorized", true)
+		c.Locals("session", session)
+	}
+
+	return nil
+}
+
+func GetSessionFromRequest(c *fiber.Ctx) (Session, error) {
+	var data GetSessionRequest
+	var session = Session{}
+	err := c.BodyParser(&data)
+	if err != nil {
+		return session, Error(c, BodyError, nil)
+	}
+
+	if len(data.Token) < 1 {
+		return session, Error(c, InvalidTokenError, nil)
+	}
+
+	password := GetHashPassword(LocalHashPassword, data.HashPassword)
+	decrypt, err := Decrypt(password, data.Token)
+	if err != nil {
+		return session, Error(c, InvalidTokenError, nil)
+	}
+
+	session, err = UnParseSession(decrypt)
+	if err != nil {
+		return session, Error(c, InvalidTokenError, nil)
+	}
+
+	return session, nil
 }
