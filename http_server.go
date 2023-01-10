@@ -32,7 +32,7 @@ func (s *Server) Listen() error {
 }
 
 func OK(c *fiber.Ctx, message string, data interface{}) error {
-	return c.JSON(HTTPServerMessage{
+	return c.JSON(JSONPayload{
 		Message: message,
 		Data:    data,
 		Exit:    0,
@@ -40,7 +40,7 @@ func OK(c *fiber.Ctx, message string, data interface{}) error {
 }
 
 func Error(c *fiber.Ctx, message string, data interface{}) error {
-	return c.JSON(HTTPServerMessage{
+	return c.JSON(JSONPayload{
 		Message: message,
 		Data:    data,
 		Exit:    1,
